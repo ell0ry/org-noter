@@ -96,8 +96,8 @@ When the list contains:
    without notes, but that has previous notes that are shown."
   :group 'org-noter
   :type '(set (const :tag "Session start" start)
-              (const :tag "Scroll to location with notes" scroll)
-              (const :tag "Scroll to location with previous notes only" only-prev)))
+          (const :tag "Scroll to location with notes" scroll)
+          (const :tag "Scroll to location with previous notes only" only-prev)))
 
 (defcustom org-noter-notes-window-location 'horizontal-split
   "The default document/notes window layout.
@@ -107,8 +107,8 @@ Note that this will only have effect on session startup if `start'
 is member of `org-noter-notes-window-behavior' (which see)."
   :group 'org-noter-layout
   :type '(choice (const :tag "Horizontal" horizontal-split)
-                 (const :tag "Vertical" vertical-split)
-                 (const :tag "Other frame" other-frame)))
+          (const :tag "Vertical" vertical-split)
+          (const :tag "Other frame" other-frame)))
 
 (define-obsolete-variable-alias 'org-noter-doc-split-percentage 'org-noter-doc-split-fraction "1.2.0")
 (defcustom org-noter-doc-split-fraction '(0.5 . 0.5)
@@ -798,7 +798,7 @@ be `org-noter--session'."
     (cond
      ((and (not arg-is-session) (vectorp info))
       ;; NOTE(nox): Use arguments to find heading, by trying to find the outermost parent heading with
-          ;; the specified property
+      ;; the specified property
       (let ((notes-buffer (aref info 0))
             (wanted-prop  (aref info 1)))
         (unless (and (buffer-live-p notes-buffer) (or (stringp wanted-prop)
@@ -1030,12 +1030,12 @@ Used by interactive note-window location functions."
 
         (when org-noter-swap-window
           (cl-labels ((swap-windows (window1 window2)
-                                    "Swap the buffers of WINDOW1 and WINDOW2."
-                                    (let ((buffer1 (window-buffer window1))
-                                          (buffer2 (window-buffer window2)))
-                                      (set-window-buffer window1 buffer2)
-                                      (set-window-buffer window2 buffer1)
-                                      (select-window window2))))
+                        "Swap the buffers of WINDOW1 and WINDOW2."
+                        (let ((buffer1 (window-buffer window1))
+                              (buffer2 (window-buffer window2)))
+                          (set-window-buffer window1 buffer2)
+                          (set-window-buffer window2 buffer1)
+                          (select-window window2))))
             (let ((frame (window-frame notes-window)))
               (when (and (frame-live-p frame)
                          (not (eq frame (selected-frame))))
@@ -1222,12 +1222,12 @@ location property, return the outer heading.  When INCLUDE-ROOT
 is non-nil, the root heading is also eligible to be returned."
   (org-noter--with-valid-session
    (org-with-point-at (point-min)
-    (when (org-before-first-heading-p)
-      (let ((prop (org-entry-get nil org-noter-property-note-location))
-            (at-root (equal (org-noter--session-id session)
-                            (get-text-property (point) org-noter--id-text-property))))
-        (when (and (org-noter--check-location-property prop) (or include-root (not at-root)))
-          prop))))))
+     (when (org-before-first-heading-p)
+       (let ((prop (org-entry-get nil org-noter-property-note-location))
+             (at-root (equal (org-noter--session-id session)
+                             (get-text-property (point) org-noter--id-text-property))))
+         (when (and (org-noter--check-location-property prop) (or include-root (not at-root)))
+           prop))))))
 
 (defun org-noter--doc-get-page-slice ()
   "Return (slice-top . slice-height)."
@@ -1299,7 +1299,7 @@ Scroll units are character-based."
   "Get the page number given a LOCATION of form (page top . left) or (page . top)."
   (if (listp location)
       (car location)
-      location))
+    location))
 
 (defun org-noter--get-location-left (location)
   "Get the left coordinate given a LOCATION.
@@ -1743,12 +1743,12 @@ This is mode specific.  In PDF it's a the page number and 4
 coordinates for the highlight.  This is delegated to each document
 mode."
   (with-selected-window (org-noter--get-doc-window)
-     (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
+    (run-hook-with-args-until-success 'org-noter--get-highlight-location-hook)))
 
 (defun org-noter--get-serialized-highlight (highlight-location)
   "Return a string representation of the HIGHLIGHT-LOCATION.
 This is delegated to each document mode (eg pdf)."
-     (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
+  (run-hook-with-args-until-success 'org-noter--pretty-print-highlight-location-hook highlight-location))
 
 (defun org-noter--update-doc-rename-in-notes (document-path new-document-path &optional _ok-if-already-exists)
   "Update org-noter references to document-file whose name has changed.
@@ -2173,7 +2173,7 @@ want to kill."
       (with-current-buffer doc-buffer
         (remove-hook 'kill-buffer-hook 'org-noter--handle-kill-buffer t))
       (unless org-noter-kill-frame-at-session-end
-          (set-window-dedicated-p (get-buffer-window doc-buffer) nil))
+        (set-window-dedicated-p (get-buffer-window doc-buffer) nil))
       (kill-buffer doc-buffer)
 
       (when (frame-live-p frame)
@@ -2191,6 +2191,16 @@ want to kill."
                                          (org-noter--session-doc-mode session))
        (user-error "This command is not supported for %s"
                    (org-noter--session-doc-mode session)))))
+
+;; Added patch function
+(defun org-noter--check-and-convert-location (location)
+  "If the location is an org-noter-pdftools-location, it transforms
+it into a (page . height) cons, otherwise it keeps the cons
+unaltered"
+  (if (org-noter-pdftools--location-p location)
+      (cons (org-noter-pdftools--location-page location)
+            (org-noter-pdftools--location-height location))
+    location))
 
 (defun org-noter-insert-note (&optional toggle-highlight precise-info)
   "Insert note associated with the current location.
@@ -2259,7 +2269,8 @@ Guiding principles for note generation
                collection title note-body existing-note
                (default-title (or short-selected-text
                                   (replace-regexp-in-string (regexp-quote "$p$")
-                                                            (org-noter--pretty-print-location-for-title location)
+                                                            ;; (org-noter--pretty-print-location-for-title location)
+                                                            (org-noter--pretty-print-location-for-title (org-noter--check-and-convert-location location))
                                                             org-noter-default-heading-title)))
                (empty-lines-number (if org-noter-separate-notes-from-heading 2 1)))
 
